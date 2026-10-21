@@ -1,0 +1,14 @@
+# CPU-only PyTorch is enough (small MLP policies train faster on CPU than GPU here).
+# Install torch first from the CPU index to avoid a 2+ GB CUDA download:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+gymnasium>=0.29
+stable-baselines3>=2.3
+numpy
+scipy
+pandas
+matplotlib
+pygame
+tqdm
+rich
+pytest

@@ -1,0 +1,212 @@
+# Failure-Mode Characterisation of PPO Navigation Under Environment Shift
+
+Code for the paper in `outputs/paper.tex`. Ankit Dey, Aryan Kochhar, Eshaan Dinesh and Mohan Ram Sridhar, VIT Chennai.
+
+A PPO navigation policy is trained at **one** cell of a 3×3×3 grid (obstacle speed × density × motion pattern) and evaluated on all 27 cells.
+- **Study A** labels every failed episode with a taxonomy that was fixed in advance (five categories, plus one added after a pilot run and before the full experiment).
+- **Study B** sweeps the safety weight `w_c` and finds the knee of the freezing–collision frontier.
+- **Baselines** (A\*, fixed-safety PPO, adaptive-risk PPO) are evaluated on the same grid.
+
+---
+
+## 1. Setup (once)
+
+Open the folder in VSCode (`File → Open Folder… → RL Project`), then open a terminal (`` Ctrl+` ``):
+
+```bash
+python -m venv .venv
+```
+
+```bash
+.venv\Scripts\activate
+```
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+VSCode should pick up `.venv` on its own; `.vscode/settings.json` points to it. If it doesn't, run `Ctrl+Shift+P → Python: Select Interpreter → .venv`.
+
+> **CPU is correct here.** The policies are small MLPs on a fast 2D simulator, so PyTorch on CPU is as fast as a GPU or faster. No CUDA is needed.
+
+## 2. Check everything works (~2 min)
+
+```bash
+python -m pytest -v tests
+```
+
+```bash
+python run_all.py --mode smoke
+```
+
+The tests check the key claims of the freezing definition: stopping with a clear path counts as **freezing**, stopping with no advancing action counts as **yielding** (not freezing), and a short hesitation is not freezing. The smoke run exercises the whole pipeline with tiny numbers, which are meaningless.
+
+## 3. Run the experiments
+
+| Mode | What it is | Approx. time on a 20-thread laptop |
+|---|---|---|
+| `smoke` | install check | ~1–2 min |
+| `quick` | real but small: 400k steps, 2 seeds, 4 safety weights, 30 eps/cell | ~15 min |
+| `full` | paper-sized: 2M steps, 5 seeds, 8 safety weights × 3 seeds, 200 eps/cell | ~3.5 hours (measured) |
+
+```bash
+python run_all.py --mode quick
+```
+
+```bash
+python run_all.py --mode full
+```
+
+> **Laptop memory.** Every parallel process loads PyTorch. The defaults are capped at 4 training jobs and 6 evaluation workers, which suits a 16 GB machine. If you see `WinError 1455: The paging file is too small`, close other heavy apps and lower them, for example `python run_all.py --mode full --jobs 2 --workers 3`. Don't run two pipelines at once.
+
+`run_all.py` runs `train → study A → study B → baselines → analyze`. Already-trained models are reused, so you can stop with `Ctrl+C` and run the same command again to continue. Each stage can also be run on its own:
+
+```bash
+python train.py --mode quick
+```
+
+```bash
+python study_a.py --mode quick
+```
+
+```bash
+python study_b.py --mode quick
+```
+
+```bash
+python baselines.py --mode quick
+```
+
+```bash
+python analyze.py --mode quick
+```
+
+Study B **depends on** Study A, as in the paper: it reads `study_a.csv` to pick the most freezing-prone cells. Use `--jobs N` to set parallel training processes and `--workers N` for parallel evaluation processes if the laptop gets too hot.
+
+### VSCode buttons
+
+The **Run and Debug** panel (`Ctrl+Shift+D`) has ready-made launch configs: tests, smoke, quick, full, analyze, and five demos. Pick one and press **F5**.
+
+## 4. Live demo (for the presentation)
+
+```bash
+python demo.py
+```
+
+```bash
+python demo.py --cell medium dense random_walk
+```
+
+```bash
+python demo.py --cell fast medium adversarial
+```
+
+```bash
+python demo.py --wc 128 --cell medium dense random_walk
+```
+
+```bash
+python demo.py --policy astar
+```
+
+The window shows the arena with LiDAR rays, obstacles with velocity arrows, and the goal. The side panel shows live `v`, `ω`, clearance `m_t`, **|A_free|** (how many advancing actions are collision-free), a **freezing meter** that fills while the robot makes no progress toward the goal although a clear advancing move exists (this includes circling, not only standing still), and a running tally of taxonomy labels. At the end of each episode its label (FREEZING, COLLISION FROM BEHIND, …) is shown in a banner.
+
+Keys: `SPACE` pause · `N` next · `R` replay · `1/2/3` cycle speed/density/pattern · `P` cycle policy (PPO/A\*/random) · `L` lidar · `+/-` speed · `ESC` quit.
+
+Demo episodes use the **same seeds as the evaluation**, so `--start-episode 4` (shown as episode 5) replays an episode that is in the CSV. To make a GIF for the slides:
+
+```bash
+python demo.py --cell medium dense random_walk --episodes 3 --save-gif freezing.gif
+```
+
+The demo uses the best models available (`full`, then `quick`, then `smoke`); `--mode quick` forces a particular set.
+
+**After cloning:** the repo includes two trained models, `results/full/models/ppo_wc8_s0.zip` (the default) and `ppo_wc128_s0.zip` (the `--wc 128` demo), so `demo.py` works straight away. Every other policy is regenerated by `run_all.py`. The repo also includes the full run's per-episode CSVs and figures, so `analyze.py --mode full` and `make_final.py --mode full` also work without retraining.
+
+**Suggested presentation flow:**
+1. Run the training cell and point out the success rate.
+2. Press `2` (dense): the robot starts freezing.
+3. Press `1` (fast) and `3` (adversarial): collisions, some of them from behind.
+4. Press `P` to show A\* on the same episode.
+5. Open `results/<mode>/figures/`.
+
+## 5. Final-review paper and slides
+
+The `final/` folder holds the final paper (`paper_final.tex`) and the deck generator (`build_deck.js`). They contain **no hand-typed numbers**: `make_final.py` fills in every number, table, figure and verdict sentence from your results.
+
+One-time setup for the deck: install Node.js, then run this in the project folder:
+
+```bash
+npm install
+```
+
+After the full run:
+
+```bash
+python make_final.py --mode full
+```
+
+This writes:
+- `final/paper_final.pdf`, the IEEE paper with Results, Discussion and Conclusion filled in (needs MiKTeX `pdflatex`; otherwise upload the `final/` folder to Overleaf)
+- `final/Final_Review_Deck.pptx`, 17 slides (18 if `freezing.gif` / `collisions.gif` exist in the project root, which adds a recorded-demo backup slide) with native, editable PowerPoint charts and speaker notes on every slide
+
+Q&A prep for the results is in `final/QUESTIONS_FINAL.md`. `--mode quick` builds a draft from the quick run, and the deck footer then flags it in red as a quick run. `--placeholder` builds the empty template. Every slide has a **footer saying which data it uses**, so a smoke or quick deck can't be mistaken for the final one.
+
+**Read the generated text before the review.** Sentences such as "RQ1: Supported. …" are chosen from the outcome branches the proposal pre-registered, using the actual numbers. You can reword them in `paper_final.tex` or `build_deck.js`, but don't change a verdict the data don't support. Re-running `make_final.py` overwrites `final/generated/` and the two outputs, not your edits to the `.tex`/`.js` sources.
+
+## 6. Outputs
+
+```
+results/<mode>/
+  models/*.zip               trained PPO policies (ppo_wc8_s0 = w_c 8, seed 0)
+  logs/<run>/                training curves (progress.csv, monitor.csv)
+  study_a.csv                one row per episode: outcome, taxonomy label, all metrics
+  study_a_cells.csv          per-cell table (success, collision, freezing, label shares)
+  study_b.csv, study_b_rates.csv, study_b_cells.json
+  baselines.csv
+  summary.md                 << tables, headline numbers, and a verdict on RQ1–RQ4
+  summary.json
+  figures/
+    a1_success_heatmap.png       success over the 27 cells
+    a2_failure_composition.png   stacked failure labels per cell
+    a3_one_axis_shift.png        failure composition when one axis is shifted
+    a4_freezing_sensitivity.png  freezing rate over delta x N (sensitivity analysis)
+    b1_frontier.png              collision vs freezing, one curve per cell, knee starred
+    b2_rates_vs_wc.png           rates vs w_c with knee and bootstrap CI
+    c1_baselines.png             four configurations under shift
+    d1_training_curves.png
+```
+
+`summary.md` is written to feed directly into the paper's Results and Conclusion sections.
+
+## 7. Code map (matches the paper's work split)
+
+| File | What | Paper |
+|---|---|---|
+| `navsim/config.py` | **every pre-registered constant**: geometry, grid, reward, thresholds, run modes | Tables II–III, Sec. VI |
+| `navsim/env.py` | Gymnasium 2D simulator: unicycle robot, 60-beam 240° LiDAR, linear/random-walk/adversarial obstacles, reward Eq. (1), `A_free` forward model | Sec. III, V-A |
+| `navsim/metrics.py` | freezing Eq. (5), the 6 ordered taxonomy tests plus residual, episode metrics, sensitivity grid | Sec. IV-A, VI (contributors A, B) |
+| `navsim/policies.py` | PPO wrapper, A\* planner baseline | Table IV (D) |
+| `navsim/training.py`, `train.py` | PPO training at the centre cell (SB3) | Sec. V-C |
+| `study_a.py` | 27-cell evaluation | Study A (A) |
+| `study_b.py` | safety-weight sweep on centre plus flagged cells | Study B (C) |
+| `baselines.py` | A\*, fixed safety, adaptive risk | Table IV (D) |
+| `analyze.py` | chi² with Holm correction, generalisation gaps, Kneedle knee with hierarchical bootstrap CI, figures, summary | Sec. VII |
+| `demo.py` | live pygame visualisation | — |
+| `make_final.py`, `final/` | final-review paper + deck, generated from results | all |
+| `tests/test_metrics.py` | freezing ≠ yielding, deadlock, oscillation, ordering, frontal/static collision | — |
+
+## 8. Design decisions to state in the paper
+
+Each of these is fixed in `config.py` and needs to be stated in the paper:
+
+- **Thresholds the paper left symbolic.** R_g = 1.0 m, M = 6 flips, N_o = 20 steps, lateral deadlock clearance 0.35 m, ε_d = 0.05 m over 20 steps, A_free horizon h = 10 steps (1 s).
+- **A_free candidate set.** 10 *moving* actions: v ∈ {0.25, 0.5} m/s × ω ∈ {−1, −0.5, 0, 0.5, 1} rad/s. An action counts as free only if it is collision-free for h steps **and** reduces the goal distance. This makes "it could have advanced" literal, and it is why stopping in place never counts as a clear action.
+- **Collision-from-behind.** Contact with a moving obstacle that is outside the 240° FOV, or that is behind the robot's lateral axis (|bearing| > 90°) while moving along the robot's heading.
+- **Reward weights.** w_g = 10, w_p = 5/m, w_t = 0.01, λ = 1. Default w_c = 8; the elevated "fixed safety" w_c = 32. The adaptive baseline uses w_c · (1 + 3·clip((1 − m_t)/1, 0, 1)).
+- **Taxonomy amendment: a 6th category, `frontal_static_collision`.** A pilot run (one 400k-step policy, 120 episodes) showed that head-on contacts and contacts with walls or static blocks matched none of the original five tests: 45 of 67 failures landed in the residual class. The category was added **before the full experiment** and is applied **last** (test 6), so the original five tests keep priority and their counts don't change. With it in place, every collision and timeout gets a label, so the residual is close to empty by construction. The analysis therefore also reports the **catch-all share** (timeout + frontal/static collision), which is the honest measure of how much the mechanism-specific tests explain, plus a breakdown of the new category into head-on / static block / wall. Paper: Sec. IV-B, "Amendment to the Taxonomy".
+- **Compute.** The Review-1 proposal said RTX 3070 Ti and about 100 GPU-hours. The actual setup is CPU-only, and the full run took about 3.5 hours on this laptop. `final/paper_final.tex` already says so.

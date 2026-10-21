@@ -1,0 +1,20 @@
+{
+  "top_failure_category": "collision_from_behind",
+  "failure_ranking": {
+    "collision_from_behind": 2876,
+    "freezing": 1037,
+    "timeout": 70,
+    "oscillation_near_goal": 37
+  },
+  "cells": [
+    "medium-medium-random_walk",
+    "slow-sparse-random_walk",
+    "slow-medium-linear",
+    "slow-sparse-linear"
+  ],
+  "freezing_rate_in_study_a": {
+    "slow-sparse-random_walk": 0.147,
+    "slow-medium-linear": 0.135,
+    "slow-sparse-linear": 0.135
+  }
+}
