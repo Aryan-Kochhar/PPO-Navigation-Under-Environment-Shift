@@ -1,184 +1,185 @@
+<div align="center">
+
 # Failure-Mode Characterisation of PPO Navigation Under Environment Shift
 
-A PPO navigation policy is trained at **one** cell of a 3×3×3 grid (obstacle speed × density × motion pattern) and evaluated on all 27 cells.
-- **Study A** labels every failed episode with a taxonomy that was fixed in advance (five categories, plus one added after a pilot run and before the full experiment).
-- **Study B** sweeps the safety weight `w_c` and finds the knee of the freezing–collision frontier.
-- **Baselines** (A\*, fixed-safety PPO, adaptive-risk PPO) are evaluated on the same grid.
+**A success rate hides *how* a robot fails. This project measures the how.**
+
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-CPU-EE4C2C?logo=pytorch&logoColor=white)
+![Gymnasium](https://img.shields.io/badge/Gymnasium-2D%20sim-0081A5)
+![Stable-Baselines3](https://img.shields.io/badge/Stable--Baselines3-PPO-6E56CF)
+![Tests](https://img.shields.io/badge/tests-9%20passing-2EA44F)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+
+</div>
 
 ---
 
-## 1. Setup (once)
+A PPO navigation policy is trained in **one** environment of a 3×3×3 shift grid (obstacle **speed** × **density** × **motion pattern**) and evaluated in all **27** environments. Every failed episode is labelled with **exactly one** cause, so we can see *which* mechanism breaks the policy, not just how often it breaks.
 
-Open the folder in VSCode, then open a terminal (`` Ctrl+` ``):
+## Key results
+
+| | Result |
+|---|---|
+| Success in the training environment | **59.3%** |
+| Mean success across the other 26 environments | **≈ 44%** (generalisation gap **0.157**) |
+| Episodes evaluated | **27,000** (5 seeds × 27 environments × 200 episodes) |
+| Failures that are head-on or wall/block collisions | **73%** of all failures |
+| Matched-success environment pairs that still fail differently | **16 of 30** (Holm-corrected χ², p < 0.05) |
+| Safety-weight knee (where freezing and collisions trade off) | **w_c ≈ 16** (wide 95% CI, see below) |
+
+**The headline:** environments that score the *same* success rate can fail for completely different reasons, so they need different fixes.
+
+## Demo
+
+<div align="center">
+
+| Freezing: robot stops with a clear path | Collisions: fast, chasing obstacles |
+|:---:|:---:|
+| <img src="freezing.gif" width="380" alt="Freezing demo"/> | <img src="collisions.gif" width="380" alt="Collision demo"/> |
+
+</div>
+
+Run it yourself with `python demo.py`. The side panel shows live speed, clearance, the number of collision-free advancing moves, a **freezing meter**, and the failure label at the end of each episode.
+
+## Architecture
+
+### The study pipeline
+
+```mermaid
+flowchart LR
+    CFG["config.py<br/>every fixed constant"] --> TRAIN
+    TRAIN["train.py<br/>PPO in the centre cell"] --> SA
+    TRAIN --> SB
+    TRAIN --> BASE
+    SA["study_a.py<br/>27-cell evaluation"] --> SB
+    SA --> AN
+    SB["study_b.py<br/>safety-weight sweep"] --> AN
+    BASE["baselines.py<br/>A*, fixed safety, adaptive risk"] --> AN
+    METRICS["metrics.py<br/>freezing + failure taxonomy"] -. shared by all studies .-> SA
+    METRICS -. .-> SB
+    METRICS -. .-> BASE
+    AN["analyze.py<br/>statistics, figures, summary"] --> OUT[("results/full/<br/>CSVs, figures, summary.md")]
+    DEMO["demo.py<br/>live pygame visualiser"] -. reads models .-> TRAIN
+
+    classDef core fill:#1f2937,stroke:#60a5fa,color:#f9fafb
+    classDef out fill:#064e3b,stroke:#34d399,color:#ecfdf5
+    class CFG,METRICS core
+    class OUT out
+```
+
+### The agent
+
+```mermaid
+flowchart LR
+    subgraph Sensing
+        L["60-beam LiDAR<br/>240° field of view"]
+        G["goal distance and bearing<br/>previous speed and turn"]
+    end
+    L --> STACK["stack last 4 frames<br/>260 inputs"]
+    G --> STACK
+    STACK --> ACTOR["Actor MLP<br/>256 × 256"]
+    STACK --> CRITIC["Critic MLP<br/>256 × 256"]
+    ACTOR --> ACT["action: speed 0–0.5 m/s<br/>turn rate −1 to 1 rad/s"]
+    CRITIC --> VAL["value V(s)<br/>used to train the actor"]
+```
+
+### The failure taxonomy
+
+Labels are checked in a **fixed order**, and the first match wins. The thresholds were fixed before the full experiment.
+
+| # | Label | What it means |
+|:-:|---|---|
+| 1 | `collision_from_behind` | Hit by an obstacle outside the 240° view, or from behind the lateral axis |
+| 2 | `freezing` | Stopped while a collision-free advancing move existed |
+| 3 | `oscillation_near_goal` | Close to the goal but keeps flipping its turn direction |
+| 4 | `deadlock` | Boxed in on both sides with no clearance |
+| 5 | `timeout` | Ran out of the 50 s budget |
+| 6 | `frontal_static_collision` | Any other collision (head-on, wall, or static block) |
+
+### Freezing, defined precisely
+
+At every step the detector simulates **10 candidate moves** (2 speeds × 5 turn rates) one second ahead. A move is *free* if it is collision-free **and** reduces the goal distance. The robot is **freezing** when at least one free move exists but progress stays below δ = 5 mm per step for N = 20 steps. Stopping at a door with no safe move is **yielding**, not freezing.
+
+## Results
+
+<div align="center">
+<img src="results/full/figures/a1_success_heatmap.png" width="640" alt="Success over the 27 environments"/>
+<br/><sub>Success over the 27 shift environments. The trained cell is outlined in the centre.</sub>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="results/full/figures/a2_failure_composition.png" width="640" alt="Failure composition per environment"/>
+<br/><sub>Failure composition per environment. Two environments with the same success rate can have very different bars.</sub>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="results/full/figures/b1_frontier.png" width="640" alt="Freezing versus collision frontier"/>
+<br/><sub>Study B: freezing versus collision as the safety weight w_c changes. The knee is starred.</sub>
+</div>
+
+<details>
+<summary><b>Caveat on the knee</b></summary>
+
+The centre-cell knee is w_c* = 16.4, but its 95% bootstrap CI is [1.98, 128], so the exact tipping point is poorly pinned down. More seeds per weight would tighten it.
+
+</details>
+
+## Quick start
 
 ```bash
 python -m venv .venv
-```
-
-```bash
 .venv\Scripts\activate
-```
-
-```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu
-```
-
-```bash
 pip install -r requirements.txt
 ```
 
-VSCode should pick up `.venv` on its own; `.vscode/settings.json` points to it. If it doesn't, run `Ctrl+Shift+P → Python: Select Interpreter → .venv`.
+CPU is enough. The policies are small MLPs on a fast 2D simulator, so no CUDA is needed.
 
-> **CPU is correct here.** The policies are small MLPs on a fast 2D simulator, so PyTorch on CPU is as fast as a GPU or faster. No CUDA is needed.
-
-## 2. Check everything works (~2 min)
-
-```bash
-python -m pytest -v tests
-```
-
-```bash
-python run_all.py --mode smoke
-```
-
-The tests check the key claims of the freezing definition: stopping with a clear path counts as **freezing**, stopping with no advancing action counts as **yielding** (not freezing), and a short hesitation is not freezing. The smoke run exercises the whole pipeline with tiny numbers, which are meaningless.
-
-## 3. Run the experiments
-
-| Mode | What it is | Approx. time on a 20-thread laptop |
+| Command | What it does | Time (20-thread laptop) |
 |---|---|---|
-| `smoke` | install check | ~1–2 min |
-| `quick` | real but small: 400k steps, 2 seeds, 4 safety weights, 30 eps/cell | ~15 min |
-| `full` | full size: 2M steps, 5 seeds, 8 safety weights × 3 seeds, 200 eps/cell | ~3.5 hours (measured) |
+| `python -m pytest -v tests` | Checks the freezing and taxonomy definitions | seconds |
+| `python run_all.py --mode smoke` | Whole pipeline with tiny numbers, install check | ~1–2 min |
+| `python run_all.py --mode quick` | 400k steps, 2 seeds, 4 safety weights, 30 eps/cell | ~15 min |
+| `python run_all.py --mode full` | Full size: 2M steps, 5 seeds, 200 eps/cell | ~3.5 h (measured) |
+| `python demo.py` | Live visualiser (`--cell fast medium adversarial`, `--policy astar`) | — |
 
-```bash
-python run_all.py --mode quick
-```
+Already-trained models are reused, so `Ctrl+C` and rerun to continue. Study B reads `study_a.csv`, so Study A must run first. Each stage is also available on its own (`train.py`, `study_a.py`, `study_b.py`, `baselines.py`, `analyze.py`).
 
-```bash
-python run_all.py --mode full
-```
+> **Laptop memory.** Each parallel process loads PyTorch. If you see `WinError 1455`, lower the parallelism: `--jobs 2 --workers 3`.
 
-> **Laptop memory.** Every parallel process loads PyTorch. The defaults are capped at 4 training jobs and 6 evaluation workers, which suits a 16 GB machine. If you see `WinError 1455: The paging file is too small`, close other heavy apps and lower them, for example `python run_all.py --mode full --jobs 2 --workers 3`. Don't run two pipelines at once.
+The repo ships with the full run's CSVs, figures and the two demo models, so `python analyze.py --mode full` and `python demo.py` work without retraining.
 
-`run_all.py` runs `train → study A → study B → baselines → analyze`. Already-trained models are reused, so you can stop with `Ctrl+C` and run the same command again to continue. Each stage can also be run on its own:
+**VSCode:** the Run and Debug panel (`Ctrl+Shift+D`) has ready-made configs for tests, each run mode and the demos.
 
-```bash
-python train.py --mode quick
-```
-
-```bash
-python study_a.py --mode quick
-```
-
-```bash
-python study_b.py --mode quick
-```
-
-```bash
-python baselines.py --mode quick
-```
-
-```bash
-python analyze.py --mode quick
-```
-
-Study B **depends on** Study A: it reads `study_a.csv` to pick the most freezing-prone cells. Use `--jobs N` to set parallel training processes and `--workers N` for parallel evaluation processes if the laptop gets too hot.
-
-### VSCode buttons
-
-The **Run and Debug** panel (`Ctrl+Shift+D`) has ready-made launch configs: tests, smoke, quick, full, analyze, and five demos. Pick one and press **F5**.
-
-## 4. Live demo
-
-```bash
-python demo.py
-```
-
-```bash
-python demo.py --cell medium dense random_walk
-```
-
-```bash
-python demo.py --cell fast medium adversarial
-```
-
-```bash
-python demo.py --wc 128 --cell medium dense random_walk
-```
-
-```bash
-python demo.py --policy astar
-```
-
-The window shows the arena with LiDAR rays, obstacles with velocity arrows, and the goal. The side panel shows live `v`, `ω`, clearance `m_t`, **|A_free|** (how many advancing actions are collision-free), a **freezing meter** that fills while the robot makes no progress toward the goal although a clear advancing move exists (this includes circling, not only standing still), and a running tally of taxonomy labels. At the end of each episode its label (FREEZING, COLLISION FROM BEHIND, …) is shown in a banner.
-
-Keys: `SPACE` pause · `N` next · `R` replay · `1/2/3` cycle speed/density/pattern · `P` cycle policy (PPO/A\*/random) · `L` lidar · `+/-` speed · `ESC` quit.
-
-Demo episodes use the **same seeds as the evaluation**, so `--start-episode 4` (shown as episode 5) replays an episode that is in the CSV. To make a GIF:
-
-```bash
-python demo.py --cell medium dense random_walk --episodes 3 --save-gif freezing.gif
-```
-
-The demo uses the best models available (`full`, then `quick`, then `smoke`); `--mode quick` forces a particular set.
-
-**After cloning:** the repo includes two trained models, `results/full/models/ppo_wc8_s0.zip` (the default) and `ppo_wc128_s0.zip` (the `--wc 128` demo), so `demo.py` works straight away. Every other policy is regenerated by `run_all.py`. The repo also includes the full run's per-episode CSVs and figures, so `analyze.py --mode full` also works without retraining.
-
-**Suggested demo flow:**
-1. Run the training cell and point out the success rate.
-2. Press `2` (dense): the robot starts freezing.
-3. Press `1` (fast) and `3` (adversarial): collisions, some of them from behind.
-4. Press `P` to show A\* on the same episode.
-5. Open `results/<mode>/figures/`.
-
-## 5. Outputs
+## Project layout
 
 ```
-results/<mode>/
-  models/*.zip               trained PPO policies (ppo_wc8_s0 = w_c 8, seed 0)
-  logs/<run>/                training curves (progress.csv, monitor.csv)
-  study_a.csv                one row per episode: outcome, taxonomy label, all metrics
-  study_a_cells.csv          per-cell table (success, collision, freezing, label shares)
-  study_b.csv, study_b_rates.csv, study_b_cells.json
-  baselines.csv
-  summary.md                 << tables, headline numbers, and a verdict on RQ1–RQ4
-  summary.json
-  figures/
-    a1_success_heatmap.png       success over the 27 cells
-    a2_failure_composition.png   stacked failure labels per cell
-    a3_one_axis_shift.png        failure composition when one axis is shifted
-    a4_freezing_sensitivity.png  freezing rate over delta x N (sensitivity analysis)
-    b1_frontier.png              collision vs freezing, one curve per cell, knee starred
-    b2_rates_vs_wc.png           rates vs w_c with knee and bootstrap CI
-    c1_baselines.png             four configurations under shift
-    d1_training_curves.png
+navsim/
+  config.py      every fixed constant: geometry, grid, reward, thresholds, run modes
+  env.py         Gymnasium 2D simulator: unicycle robot, LiDAR, moving obstacles, reward
+  metrics.py     freezing condition, six-test failure taxonomy, episode metrics
+  policies.py    PPO wrapper and the A* baseline
+  training.py    PPO training with Stable-Baselines3
+  paths.py       one folder per run mode, so smoke/quick never overwrite full
+train.py · study_a.py · study_b.py · baselines.py · analyze.py · run_all.py · demo.py
+tests/test_metrics.py
+results/full/    the full run: CSVs, summary.md, figures, two trained models
 ```
 
-`summary.md` lists the headline numbers and a verdict on each research question.
+## Design decisions
 
-## 6. Code map
+Each of these is fixed in `config.py` before any experiment runs:
 
-| File | What |
-|---|---|
-| `navsim/config.py` | **every fixed constant**: geometry, grid, reward, thresholds, run modes |
-| `navsim/env.py` | Gymnasium 2D simulator: unicycle robot, 60-beam 240° LiDAR, linear/random-walk/adversarial obstacles, reward, `A_free` forward model |
-| `navsim/metrics.py` | freezing condition, the 6 ordered taxonomy tests plus residual, episode metrics, sensitivity grid |
-| `navsim/policies.py` | PPO wrapper, A\* planner baseline |
-| `navsim/training.py`, `train.py` | PPO training at the centre cell (Stable-Baselines3) |
-| `study_a.py` | 27-cell evaluation |
-| `study_b.py` | safety-weight sweep on centre plus flagged cells |
-| `baselines.py` | A\*, fixed safety, adaptive risk |
-| `analyze.py` | chi² with Holm correction, generalisation gaps, Kneedle knee with hierarchical bootstrap CI, figures, summary |
-| `demo.py` | live pygame visualisation |
-| `tests/test_metrics.py` | freezing ≠ yielding, deadlock, oscillation, ordering, frontal/static collision |
+- **Reward:** w_g = 10 for the goal, w_p = 5 per metre of progress, w_t = 0.01 per step, crash weight w_c = 8 by default. The "fixed safety" baseline uses w_c = 32.
+- **Training:** 2,048-step rollouts (256 steps × 8 envs), batch 256, learning rate 3e-4, γ = 0.99, PPO clip ε = 0.2, two 256-unit layers for both actor and critic.
+- **A_free candidate set:** 10 moving actions, v ∈ {0.25, 0.5} m/s × ω ∈ {−1, −0.5, 0, 0.5, 1} rad/s. Stopping never counts as a clear action.
+- **Taxonomy amendment:** a sixth category, `frontal_static_collision`, was added after a pilot run showed that 45 of 67 failures matched no original test. It was added before the full experiment and is checked last, so the original five counts do not change. The analysis reports the catch-all share (timeout + frontal/static) as the honest measure of how much the mechanism tests explain.
 
-## 7. Design decisions
+## Repository
 
-Each of these is fixed in `config.py`:
-
-- **Thresholds that were left open in the design.** R_g = 1.0 m, M = 6 flips, N_o = 20 steps, lateral deadlock clearance 0.35 m, ε_d = 0.05 m over 20 steps, A_free horizon h = 10 steps (1 s).
-- **A_free candidate set.** 10 *moving* actions: v ∈ {0.25, 0.5} m/s × ω ∈ {−1, −0.5, 0, 0.5, 1} rad/s. An action counts as free only if it is collision-free for h steps **and** reduces the goal distance. This makes "it could have advanced" literal, and it is why stopping in place never counts as a clear action.
-- **Collision-from-behind.** Contact with a moving obstacle that is outside the 240° FOV, or that is behind the robot's lateral axis (|bearing| > 90°) while moving along the robot's heading.
-- **Reward weights.** w_g = 10, w_p = 5/m, w_t = 0.01, λ = 1. Default w_c = 8; the elevated "fixed safety" w_c = 32. The adaptive baseline uses w_c · (1 + 3·clip((1 − m_t)/1, 0, 1)).
-- **Taxonomy amendment: a 6th category, `frontal_static_collision`.** A pilot run (one 400k-step policy, 120 episodes) showed that head-on contacts and contacts with walls or static blocks matched none of the original five tests: 45 of 67 failures landed in the residual class. The category was added **before the full experiment** and is applied **last** (test 6), so the original five tests keep priority and their counts don't change. With it in place, every collision and timeout gets a label, so the residual is close to empty by construction. The analysis therefore also reports the **catch-all share** (timeout + frontal/static collision), which is the honest measure of how much the mechanism-specific tests explain, plus a breakdown of the new category into head-on / static block / wall.
+Licensed under the [MIT License](LICENSE).
