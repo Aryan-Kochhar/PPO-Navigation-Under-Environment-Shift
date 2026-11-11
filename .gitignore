@@ -5,14 +5,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# LaTeX build by-products (the .tex sources and final PDFs are committed)
-*.aux
-*.log
-*.blg
-*.bbl
-*.out
-*.synctex.gz
-
 # results: only the full run is committed; smoke/quick regenerate in minutes
 results/smoke/
 results/quick/
@@ -21,9 +13,6 @@ results/*/logs/
 results/*/models/*
 !results/full/models/ppo_wc8_s0.zip
 !results/full/models/ppo_wc128_s0.zip
-
-# Office lock files (created while a .pptx/.docx is open)
-~$*
 
 # editor / OS
 .DS_Store

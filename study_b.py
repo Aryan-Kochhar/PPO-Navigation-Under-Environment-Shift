@@ -34,7 +34,7 @@ def select_cells(mode):
     top = ranking.index[0] if len(ranking) else "freezing"
     if top != "freezing":
         print(f"[study B] NOTE: Study A ranks '{top}' as the most frequent named failure, not freezing. "
-              "The pre-registered sweep variable (w_c) is unchanged; report this in the paper.")
+              "The sweep variable (w_c) is unchanged; report this with the results.")
     per_cell = a[a.cell != C.CENTRE_ID].groupby(["speed", "density", "pattern"]).freeze_any.mean()
     flagged = list(per_cell.sort_values(ascending=False).index[: m["n_study_b_cells"]])
     cells = [C.CENTRE] + [tuple(c) for c in flagged]

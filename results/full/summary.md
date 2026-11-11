@@ -129,7 +129,7 @@ Cell pairs with |dSR| <= 0.05 and enough failures: 30; significant after Holm co
 | PPO fixed safety reward | 0.019 | 0.602 | 0.876 | 0.380 | 0.030 | 0.012 | 0.009 | 0.058 | 0.000 |
 | PPO adaptive risk | 0.217 | 0.538 | 0.498 | 0.245 | 0.303 | 0.090 | 0.099 | 0.267 | 0.000 |
 
-## Pre-registered questions - verdicts
+## Research questions - verdicts
 
 - **RQ1** (composition changes where SR does not): SUPPORTED - 16 matched-SR cell pair(s) have significantly different failure distributions after Holm correction.
 - **RQ2** (attribution to a shift axis): largest one-axis drop is `pattern=adversarial` (gap 0.497). Dense -> more freezing share: False. Fast -> more collision-from-behind share: True.

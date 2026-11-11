@@ -2,7 +2,7 @@
 
 Examples
     python train.py --mode quick                 # every run the quick mode needs
-    python train.py --mode full --jobs 8         # every run for the paper, 8 in parallel
+    python train.py --mode full --jobs 8         # every run at full size, 8 in parallel
     python train.py --mode quick --wc 8 --seed 0 # a single run (shows a progress bar)
 """
 

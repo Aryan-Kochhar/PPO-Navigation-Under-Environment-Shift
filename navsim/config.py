@@ -1,10 +1,9 @@
-"""Pre-registered constants for the whole project.
+"""Constants for the whole project.
 
-Everything the paper calls "fixed before any experiment runs" lives here: the
+Everything that is fixed before any experiment runs lives here: the
 simulator geometry, the shift grid, the reward weights, the taxonomy thresholds
 and the experiment sizes for each run mode. Every script imports from this file,
-so Study A, Study B and the baselines are guaranteed to use identical metric code
-and thresholds (the "interface contract" in Section IV-D of the paper).
+so Study A, Study B and the baselines use identical metric code and thresholds.
 
 Do NOT change a threshold after looking at results. If you must change one, change
 it here, write down why, and re-run everything.
@@ -14,7 +13,7 @@ import math
 from itertools import product
 
 # --------------------------------------------------------------------------- #
-# Simulator geometry (paper Table III)
+# Simulator geometry
 # --------------------------------------------------------------------------- #
 DT = 0.1                    # control period (s)  -> 10 Hz
 V_MAX = 0.5                 # max linear speed (m/s)
@@ -35,7 +34,7 @@ OBS_STACK = 4               # H
 T_MAX = 500                 # episode step limit
 
 # --------------------------------------------------------------------------- #
-# Reward, Eq. (1):  r = w_g*1[goal] + w_p*progress - w_t - w_c*(1[coll] + lam*rho)
+# Reward:  r = w_g*1[goal] + w_p*progress - w_t - w_c*(1[coll] + lam*rho)
 # --------------------------------------------------------------------------- #
 W_GOAL = 10.0
 W_PROGRESS = 5.0            # per metre of progress toward the goal
@@ -51,7 +50,7 @@ ADAPT_KAPPA = 3.0           # w_c_eff = w_c * (1 + kappa * clip((d_adapt - m)/d_
 ADAPT_DIST = 1.0
 
 # --------------------------------------------------------------------------- #
-# Pre-registered 3x3x3 shift grid (paper Table II). Training = centre cell.
+# 3x3x3 shift grid. Training = centre cell.
 # --------------------------------------------------------------------------- #
 SPEED_LEVELS = {"slow": 0.15, "medium": 0.30, "fast": 0.50}        # m/s
 DENSITY_LEVELS = {"sparse": 4, "medium": 8, "dense": 14}           # dynamic obstacles
@@ -75,16 +74,16 @@ CENTRE_ID = cell_id(*CENTRE)
 ALL_CELLS = list(product(SPEEDS, DENSITIES, PATTERNS))   # 27 cells
 
 # --------------------------------------------------------------------------- #
-# Failure taxonomy thresholds (paper Section IV-A and VI). FROZEN.
+# Failure taxonomy thresholds. FROZEN.
 # --------------------------------------------------------------------------- #
-# Freezing, Eq. (5)
+# Freezing condition
 FREEZE_DELTA = 0.1 * V_MAX * DT     # delta = 5e-3 m per step
 FREEZE_N = 20                       # window N (steps) = 2.0 s
 AFREE_HORIZON = 10                  # h: forward-simulation horizon (steps) = 1.0 s
 # Candidate action set A_Delta: moving actions only (v > 0). An action counts as
 # "free" if the constant-velocity forward model predicts no collision over h steps
 # AND it reduces goal distance by at least FREEZE_DELTA, i.e. the robot "could
-# have advanced" (paper Section VI-A).
+# have advanced".
 AFREE_V = [0.5 * V_MAX, 1.0 * V_MAX]
 AFREE_W = [-1.0 * W_MAX, -0.5 * W_MAX, 0.0, 0.5 * W_MAX, 1.0 * W_MAX]
 AFREE_REQUIRE_PROGRESS = True
@@ -104,7 +103,7 @@ DEADLOCK_EPS = 0.05         # epsilon_d: net displacement over window (m)
 # under-covers the failure space and this is reported as a negative result.
 RESIDUAL_LIMIT = 0.10
 
-# Sensitivity analysis grid (paper Section VI-B)
+# Sensitivity analysis grid
 SENS_DELTA_FRACS = [0.05, 0.10, 0.15, 0.20]     # x V_MAX*DT
 SENS_N = [10, 20, 30, 40]
 
@@ -125,7 +124,7 @@ FAILURE_LABELS = [
 ]
 
 # --------------------------------------------------------------------------- #
-# PPO hyperparameters (paper Table III)
+# PPO hyperparameters
 # --------------------------------------------------------------------------- #
 PPO_KW = dict(
     learning_rate=3e-4,
@@ -142,7 +141,7 @@ N_ENVS = 8
 
 # --------------------------------------------------------------------------- #
 # Run modes. "smoke" checks the install in ~2 min, "quick" is for a live demo
-# (~15 min), "full" is the paper-sized experiment (~3.5 h on a 20-thread laptop).
+# (~15 min), "full" is the full-size experiment (~3.5 h on a 20-thread laptop).
 # --------------------------------------------------------------------------- #
 MODES = {
     "smoke": dict(

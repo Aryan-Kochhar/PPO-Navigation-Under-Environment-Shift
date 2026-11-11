@@ -1,4 +1,4 @@
-"""Analysis: statistics, figures and an auto-written summary for the paper.
+"""Analysis: statistics, figures and an auto-written summary.
 
 Reads results/<mode>/{study_a,study_b,baselines}.csv (whichever exist) and writes
     results/<mode>/figures/*.png
@@ -284,7 +284,7 @@ def fig_sensitivity(df, mode):
     ax.set_xlabel("window N (steps)")
     ax.set_ylabel("delta (x v_max * dt)")
     ax.grid(False)
-    ax.set_title("Freezing rate sensitivity to (delta, N)\nStudy A, all cells; bold = pre-registered", fontsize=10)
+    ax.set_title("Freezing rate sensitivity to (delta, N)\nStudy A, all cells; bold = fixed in advance", fontsize=10)
     fig.tight_layout()
     return savefig(fig, mode, "a4_freezing_sensitivity.png"), grid
 
@@ -629,7 +629,7 @@ def main(mode="quick"):
     if tf:
         figs.append(tf)
 
-    md += ["## Pre-registered questions - verdicts", ""] + verdicts(summary) + ["", "## Figures", ""]
+    md += ["## Research questions - verdicts", ""] + verdicts(summary) + ["", "## Figures", ""]
     md += [f"- `{os.path.relpath(f, mode_dir(mode))}`" for f in figs if f]
     with open(os.path.join(mode_dir(mode), "summary.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
@@ -673,7 +673,7 @@ def verdicts(s):
         out.append(f"- **RQ3** (knee in the frontier): centre-cell knee w_c* = {fmt(centre.get('knee'), 2)} "
                    f"[95% CI {fmt(centre.get('ci_low'), 2)}, {fmt(centre.get('ci_high'), 2)}]"
                    + ("" if not np.isnan(centre.get("knee", np.nan)) else
-                      " - no knee: one of the rates does not vary across the sweep (see alternatives in Sec. VII-B)."))
+                      " - no knee: one of the rates does not vary across the sweep."))
         shifted = {c: v for c, v in k.items() if c != C.CENTRE_ID}
         moved = []
         for c, v in shifted.items():

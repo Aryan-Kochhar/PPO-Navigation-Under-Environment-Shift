@@ -5,7 +5,7 @@
     python demo.py --cell fast medium adversarial    # speed + adversarial (collisions)
     python demo.py --policy astar                    # classical A* baseline
     python demo.py --wc 128                          # a very cautious policy from the sweep
-    python demo.py --save-gif demo.gif --episodes 3  # record a GIF for the slides
+    python demo.py --save-gif demo.gif --episodes 3  # record a GIF
 
 Keys:  SPACE pause | N next episode | R replay episode | 1/2/3 cycle speed/density/pattern
        P cycle policy (ppo / astar / random) | L toggle lidar | +/- speed | ESC quit

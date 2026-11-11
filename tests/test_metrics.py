@@ -1,4 +1,4 @@
-"""Sanity tests for the simulator and the pre-registered failure taxonomy.
+"""Sanity tests for the simulator and the failure taxonomy.
 
 Run:  python -m pytest -q      (or)      python tests/test_metrics.py
 """

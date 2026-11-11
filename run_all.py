@@ -2,7 +2,7 @@
 
     python run_all.py --mode smoke    # ~2 min: checks your install, numbers are meaningless
     python run_all.py --mode quick    # ~15 min: real but small; good for the live demo
-    python run_all.py --mode full     # ~3.5 hours: the paper-sized experiment
+    python run_all.py --mode full     # ~3.5 hours: the full-size experiment
 
 Every stage skips work that is already done (trained models are reused), so you can
 stop it with Ctrl+C and re-run the same command to continue. Use --only to run

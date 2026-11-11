@@ -1,6 +1,6 @@
 """Shared metric code: freezing detector, failure taxonomy, episode metrics.
 
-This module is the "interface contract" from the paper. Study A, Study B, the
+This module is the single source of truth for the labels. Study A, Study B, the
 baselines and the demo all call ``classify`` / ``episode_metrics`` from here, with
 the thresholds in ``config.py``, so every number in every table is computed the
 same way.
@@ -58,7 +58,7 @@ def _has_run(mask, n):
 
 
 def freezing_condition(rec, delta=C.FREEZE_DELTA):
-    """Per-step freezing condition of Eq. (5): no progress AND a clear action exists."""
+    """Per-step freezing condition: no progress AND a clear action exists."""
     return (rec["progress"] < delta) & (rec["a_free"] >= 1)
 
 

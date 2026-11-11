@@ -1,5 +1,5 @@
 """Where everything is written. Each run mode gets its own folder so a quick demo
-run never overwrites the full paper-sized results:
+run never overwrites the full-size results:
 
     results/<mode>/models/*.zip        trained PPO policies
     results/<mode>/logs/<run>/         training curves (progress.csv, monitor.csv)

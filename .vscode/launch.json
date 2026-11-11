@@ -3,63 +3,118 @@
     "configurations": [
         {
             "name": "0. Tests (taxonomy + freezing definition)",
-            "type": "debugpy", "request": "launch", "module": "pytest",
-            "args": ["-v", "tests"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "-v",
+                "tests"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "1. Smoke run (whole pipeline, ~2 min)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/run_all.py",
-            "args": ["--mode", "smoke"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_all.py",
+            "args": [
+                "--mode",
+                "smoke"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "2. Quick run (whole pipeline, ~30 min)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/run_all.py",
-            "args": ["--mode", "quick"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_all.py",
+            "args": [
+                "--mode",
+                "quick"
+            ],
+            "console": "integratedTerminal"
         },
         {
-            "name": "3. Full run (paper-sized, overnight)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/run_all.py",
-            "args": ["--mode", "full"], "console": "integratedTerminal"
+            "name": "3. Full run (overnight)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_all.py",
+            "args": [
+                "--mode",
+                "full"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "Demo: PPO at training cell",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/demo.py",
-            "args": [], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "args": [],
+            "console": "integratedTerminal"
         },
         {
             "name": "Demo: density shift (freezing)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/demo.py",
-            "args": ["--cell", "medium", "dense", "random_walk"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "args": [
+                "--cell",
+                "medium",
+                "dense",
+                "random_walk"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "Demo: fast + adversarial (collisions)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/demo.py",
-            "args": ["--cell", "fast", "medium", "adversarial"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "args": [
+                "--cell",
+                "fast",
+                "medium",
+                "adversarial"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "Demo: very cautious policy w_c=128 (dense)",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/demo.py",
-            "args": ["--wc", "128", "--cell", "medium", "dense", "random_walk"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "args": [
+                "--wc",
+                "128",
+                "--cell",
+                "medium",
+                "dense",
+                "random_walk"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "Demo: A* baseline",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/demo.py",
-            "args": ["--policy", "astar"], "console": "integratedTerminal"
-        },
-        {
-            "name": "Final: build paper + deck from FULL results",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/make_final.py",
-            "args": ["--mode", "full"], "console": "integratedTerminal"
-        },
-        {
-            "name": "Final: draft paper + deck from QUICK results",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/make_final.py",
-            "args": ["--mode", "quick"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "args": [
+                "--policy",
+                "astar"
+            ],
+            "console": "integratedTerminal"
         },
         {
             "name": "Analyze quick results",
-            "type": "debugpy", "request": "launch", "program": "${workspaceFolder}/analyze.py",
-            "args": ["--mode", "quick"], "console": "integratedTerminal"
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/analyze.py",
+            "args": [
+                "--mode",
+                "quick"
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

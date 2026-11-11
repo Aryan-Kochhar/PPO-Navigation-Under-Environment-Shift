@@ -1,4 +1,4 @@
-"""Baselines (paper Table IV), evaluated on the full grid with the same metrics:
+"""Baselines, evaluated on the full grid with the same metrics:
 
     A* classical planner         geometric, replans on current obstacles (deterministic)
     PPO fixed reward             = the Study A policies (w_c default) -- reused from study_a.csv
