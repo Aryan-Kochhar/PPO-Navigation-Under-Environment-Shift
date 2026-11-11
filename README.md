@@ -56,9 +56,9 @@ flowchart LR
     SA --> AN
     SB["study_b.py<br/>safety-weight sweep"] --> AN
     BASE["baselines.py<br/>A*, fixed safety, adaptive risk"] --> AN
-    METRICS["metrics.py<br/>freezing + failure taxonomy"] -. shared by all studies .-> SA
-    METRICS -. .-> SB
-    METRICS -. .-> BASE
+    METRICS["metrics.py<br/>freezing + failure taxonomy<br/>shared by all studies"] -.-> SA
+    METRICS -.-> SB
+    METRICS -.-> BASE
     AN["analyze.py<br/>statistics, figures, summary"] --> OUT[("results/full/<br/>CSVs, figures, summary.md")]
     DEMO["demo.py<br/>live pygame visualiser"] -. reads models .-> TRAIN
 
